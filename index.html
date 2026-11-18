@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>只狼 3D：苇名月下死斗 | SEKIRO: SHADOWS CLASH 3D</title>
+    <script type="module" crossorigin src="./assets/index-XAxFDyvF.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CUxsMWGm.css">
+  </head>
+  <body>
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Loading Screen -->
+    <div id="loading-overlay">
+      <div class="ink-card">
+        <div class="kanji-crest">狼</div>
+        <h1>只狼 · 苇名月下死斗</h1>
+        <p id="loading-status">正在载入玉钢名刀与苇名芦苇原...</p>
+        <div class="load-bar-track">
+          <div id="load-bar-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Title / Boss Select Lobby -->
+    <div id="title-overlay" class="hidden">
+      <div class="title-panel">
+        <div class="subtitle-en">ASHINA RESERVOIR · MOONLIT SILVERGRASS</div>
+        <h1 class="main-title">只 狼 <span>影逝二度 · 死斗复刻</span></h1>
+        <p class="lore-quote">「犹豫，就会败北。唯以刀锋招架、识破突刺、腾空雷返，斩断不死。」</p>
+
+        <div class="boss-selector">
+          <button class="boss-card selected" data-boss="genichiro" id="card-genichiro">
+            <span class="boss-tag">三忍杀 · 浮舟渡 / 巴之雷</span>
+            <strong>苇名弦一郎</strong>
+            <small>一二阶段大弓与浮舟渡连斩，三阶段褪甲觉醒「巴之雷」</small>
+          </button>
+          <button class="boss-card" data-boss="isshin" id="card-isshin">
+            <span class="boss-tag">最终首领 · 刀 / 十文字枪 / 火铳 / 雷返</span>
+            <strong>剑圣 · 苇名一心</strong>
+            <small>苇名十字斩、龙闪剑气、2.68m十文字长枪、连发火铳与雷枪</small>
+          </button>
+        </div>
+
+        <button id="btn-start-duel" class="start-btn">拔 刀 死 斗</button>
+
+        <div class="controls-grid">
+          <div><kbd>鼠标左键 / J</kbd> 楔丸连斩 / 忍杀处决</div>
+          <div><kbd>鼠标右键 / K</kbd> 架刀格挡 / <strong>完美弹反 (铛！)</strong></div>
+          <div><kbd>Shift</kbd> 垫步闪避 / <strong>突刺「危」识破踏刃</strong></div>
+          <div><kbd>Space</kbd> 跳跃 / <strong>扫击「危」二段踩头</strong> / 跃空接雷</div>
+          <div><kbd>F</kbd> 流派招式 (<kbd>Q</kbd> 切：不死斩/一文字/旋风斩)</div>
+          <div><kbd>E</kbd> 忍义手忍具 (<kbd>C</kbd> 切：手里剑/爆竹/火吹筒)</div>
+          <div><kbd>R / 1</kbd> 饮用伤药葫芦</div>
+          <div><kbd>中键 / T</kbd> 锁定首领视角</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- In-Game Sekiro HUD -->
+    <div id="hud-root" class="hidden">
+      <!-- Top-Left: Boss Vitality & Red Deathblow Orbs -->
+      <div class="boss-hud-left">
+        <div class="boss-header">
+          <span id="boss-name">苇名弦一郎</span>
+          <div id="boss-deathblow-orbs" class="db-orbs"></div>
+        </div>
+        <div class="vitality-track boss-vit">
+          <div id="boss-hp-fill" class="vitality-fill"></div>
+        </div>
+        <div id="boss-move-label" class="boss-move-hint"></div>
+      </div>
+
+      <!-- Top-Center: Symmetric Outward Sekiro Boss Posture Bar -->
+      <div id="boss-posture-wrap" class="posture-container top-posture">
+        <div class="posture-label">首领架势 POSTURE</div>
+        <div class="posture-bar">
+          <div class="posture-center-tick"></div>
+          <div id="boss-posture-l" class="posture-fill left"></div>
+          <div id="boss-posture-r" class="posture-fill right"></div>
+        </div>
+      </div>
+
+      <!-- Quick Boss Switch / Menu Top-Right -->
+      <div class="hud-top-right">
+        <button id="btn-switch-boss" class="mini-hud-btn">切换首领</button>
+        <button id="btn-back-title" class="mini-hud-btn">返回主菜单</button>
+      </div>
+
+      <!-- Center Perilous "危" Kanji -->
+      <div id="kanji-danger" class="perilous-kanji">
+        <div class="kanji-glyph">危</div>
+        <div id="kanji-sub" class="kanji-sub"></div>
+      </div>
+
+      <!-- Center Combat Callout -->
+      <div id="combat-callout" class="combat-callout"></div>
+
+      <!-- 3D Projected Lock-On & Crimson Deathblow Orb -->
+      <div id="lock-reticle" class="lock-dot"></div>
+      <div id="deathblow-reticle" class="deathblow-orb-target">
+        <span class="db-core"></span>
+        <span class="db-ring"></span>
+        <span class="db-kanji-hint">忍杀</span>
+      </div>
+
+      <!-- Bottom-Center: Player Posture Bar -->
+      <div class="posture-container bottom-posture">
+        <div class="posture-bar player-pbar">
+          <div class="posture-center-tick"></div>
+          <div id="player-posture-l" class="posture-fill left"></div>
+          <div id="player-posture-r" class="posture-fill right"></div>
+        </div>
+        <div class="posture-label">狼 · 架势槽 (按住右键快速平复架势)</div>
+      </div>
+
+      <!-- Bottom-Left: Player Vitality, Resurrection Orbs, Gourd & Emblems -->
+      <div class="player-hud-left">
+        <div id="res-orbs" class="res-orbs"></div>
+        <div class="vitality-track player-vit">
+          <div id="player-hp-fill" class="vitality-fill"></div>
+        </div>
+        <div class="player-label">狼 · 生命值 VITALITY</div>
+      </div>
+
+      <!-- Bottom-Right: Gourd, Spirit Emblems, Combat Art & Prosthetic -->
+      <div class="player-hud-right">
+        <div class="item-slots">
+          <div class="item-box gourd">
+            <span class="item-key">R</span>
+            <span class="item-title">伤药葫芦</span>
+            <strong id="gourd-count">5</strong>
+          </div>
+          <div class="item-box emblem">
+            <span class="item-key">纸人</span>
+            <span class="item-title">形代残余</span>
+            <strong id="emblem-count">18</strong>
+          </div>
+        </div>
+        <div class="equipped-tech">
+          <div><span class="tech-key">[F / Q切]</span> <span id="art-name">秘传·不死斩</span></div>
+          <div><span class="tech-key">[E / C切]</span> <span id="pros-name">手里剑·追斩</span></div>
+        </div>
+        <div class="mini-key-guide">
+          左键:斩/忍杀 · 右键:完美弹反 · Shift:识破 · Space:跳/踩头
+        </div>
+      </div>
+    </div>
+
+    <!-- Shinobi Execution / Phase Banner -->
+    <div id="execution-banner" class="execution-banner">
+      <div id="banner-kanji" class="banner-kanji">忍 杀</div>
+      <div id="banner-sub" class="banner-sub">SHINOBI EXECUTION</div>
+    </div>
+
+    <!-- Death / Resurrection ("死 / 回生") Modal -->
+    <div id="death-modal" class="modal-backdrop hidden">
+      <div class="death-box">
+        <div class="death-kanji">死</div>
+        <p class="death-desc">刀折身陨……是否借龙胤之力回生再战？</p>
+        <div class="modal-actions">
+          <button id="btn-resurrect" class="resurrect-btn">🌸 龙胤回生 (原地拔刀)</button>
+          <button id="btn-retry" class="retry-btn">鬼佛重战</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Victory Modal -->
+    <div id="victory-modal" class="modal-backdrop hidden">
+      <div class="victory-box">
+        <div class="victory-kanji">不死斩断</div>
+        <div id="victory-stats" class="victory-stats"></div>
+        <div class="modal-actions">
+          <button id="btn-next-boss" class="start-btn">挑战下一首领</button>
+          <button id="btn-rematch" class="retry-btn">再次死斗</button>
+        </div>
+      </div>
+    </div>
+
+  </body>
+</html>
