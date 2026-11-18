@@ -848,12 +848,14 @@ export class SekiroGame {
   }
 
   public step(rawDt: number): void {
-    const clampedDt = Math.min(0.05, rawDt);
+    const clampedDt = Math.min(rawDt, 0.05);
     this.elapsed += clampedDt;
 
     if (this.hitstopTimer > 0) {
       this.hitstopTimer -= clampedDt;
-      this.vfx.update(clampedDt * 0.25, this.camera.position);
+      // Dual-Clock Rule ($gamefeel-3d): keep sparks & rotational camera trauma alive during hitstop!
+      this.vfx.update(clampedDt * 0.65, this.camera.position);
+      this.updateCamera(clampedDt);
       this.renderScene();
       return;
     }
@@ -1646,18 +1648,22 @@ export class SekiroGame {
       desiredPos.z *= sc;
     }
 
-    this.camera.position.lerp(desiredPos, Math.min(1, dt * 15));
-
-    if (this.camShake > 0.001) {
-      this.camera.position.x += (Math.random() - 0.5) * this.camShake;
-      this.camera.position.y += (Math.random() - 0.5) * this.camShake;
-      this.camShake *= Math.pow(0.015, dt);
-    }
+    this.camera.position.lerp(desiredPos, 1 - Math.exp(-15 * dt));
 
     const lookTarget = this.lockedOn
       ? this.pPos.clone().lerp(this.bPos, 0.58).add(new THREE.Vector3(0, 1.38, 0))
       : this.pPos.clone().addScaledVector(fwd, 6.0).add(new THREE.Vector3(0, 1.45, 0));
     this.camera.lookAt(lookTarget);
+
+    if (this.camShake > 0.001) {
+      const trauma = Math.min(1, this.camShake * 1.65);
+      const shake = trauma * trauma;
+      const t = this.elapsed * 28;
+      this.camera.rotateX(smoothShakeNoise(t, 1) * 0.068 * shake);
+      this.camera.rotateY(smoothShakeNoise(t, 2) * 0.068 * shake);
+      this.camera.rotateZ(smoothShakeNoise(t, 3) * 0.095 * shake);
+      this.camShake = Math.max(0, this.camShake - 1.35 * dt);
+    }
   }
 
   private updateHud(dt: number): void {
@@ -1700,4 +1706,16 @@ function lerpAngle(a: number, b: number, t: number): number {
   let diff = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI;
   if (diff < -Math.PI) diff += Math.PI * 2;
   return a + diff * t;
+}
+
+function smoothShakeNoise(x: number, seed: number): number {
+  const s = x + seed * 57.3;
+  const i = Math.floor(s);
+  const f = s - i;
+  const u = f * f * (3 - 2 * f);
+  const h0 = Math.sin(i * 127.1 + 311.7) * 43758.5453;
+  const h1 = Math.sin((i + 1) * 127.1 + 311.7) * 43758.5453;
+  const a = (h0 - Math.floor(h0)) * 2 - 1;
+  const b = (h1 - Math.floor(h1)) * 2 - 1;
+  return a + (b - a) * u;
 }

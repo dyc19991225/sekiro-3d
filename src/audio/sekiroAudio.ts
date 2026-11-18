@@ -19,8 +19,15 @@ export class SekiroAudio {
       const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new Ctx();
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.55;
-      this.master.connect(this.ctx.destination);
+      this.master.gain.value = 0.62;
+      const comp = this.ctx.createDynamicsCompressor();
+      comp.threshold.value = -14;
+      comp.knee.value = 16;
+      comp.ratio.value = 6;
+      comp.attack.value = 0.002;
+      comp.release.value = 0.15;
+      this.master.connect(comp);
+      comp.connect(this.ctx.destination);
       this.startTaikoPulse();
     }
     if (this.ctx.state === 'suspended') {
